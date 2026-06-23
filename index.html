@@ -146,8 +146,8 @@
 
   <div id="loading-overlay" style="text-align: center; padding: 4rem 0;">
     <div class="loader"></div>
-    <p style="color: var(--color-text-secondary); font-weight: 500; margin-top: 1rem;">Loading default dictionaries...</p>
-    <p id="loading-error" style="color: var(--color-text-danger); font-size: 13px; display: none;">Error loading files. Ensure you are running a local web server (CORS).</p>
+    <p style="color: var(--color-text-secondary); font-weight: 500; margin-top: 1rem;">Loading dictionary...</p>
+    <p id="loading-error" style="color: var(--color-text-danger); font-size: 13px; display: none;">Error loading file. Ensure you are running a local web server (CORS) or hosted on GitHub.</p>
   </div>
 
   <div id="main-app" style="display: none;">
@@ -156,9 +156,9 @@
       <div id="file-pills" style="flex:1; min-width:0; display:flex; flex-wrap:wrap;"></div>
     </div>
 
-    <label style="font-size:14px; font-weight:500; color:var(--color-text-secondary);">Find words containing (1–3 letters)</label>
+    <label style="font-size:14px; font-weight:500; color:var(--color-text-secondary);">Find words containing (1–3 characters)</label>
     <div class="search-container">
-      <input type="text" id="qinput" maxlength="3" placeholder="e.g. EN" autocomplete="off" autocorrect="off" spellcheck="false" oninput="handleQ(this.value)">
+      <input type="text" id="qinput" maxlength="3" placeholder="e.g. EN-" autocomplete="off" autocorrect="off" spellcheck="false" oninput="handleQ(this.value)">
       <button class="icon-btn" title="Upload custom dictionary" onclick="document.getElementById('file-in-more').click()" style="border-radius: var(--border-radius-md); width: 56px; height: auto;">
         📁
       </button>
@@ -188,11 +188,9 @@ themeToggle.addEventListener('click', () => {
 let fileStore = [];
 let idx = {};
 
-// Default files to load automatically
+// Single default file to load automatically
 const defaultFiles = [
-  'in-lp1.1-but-not-csw12.txt',
-  'Collins Scrabble Words (2019).txt',
-  'enable1.txt'
+  'words.txt'
 ];
 
 const keyboardMap = {
@@ -201,7 +199,7 @@ const keyboardMap = {
   'A':{r:0, h:'L'}, 'S':{r:0, h:'L'}, 'D':{r:0, h:'L'}, 'F':{r:0, h:'L'}, 'G':{r:0, h:'L'},
   'H':{r:0, h:'R'}, 'J':{r:0, h:'R'}, 'K':{r:0, h:'R'}, 'L':{r:0, h:'R'},
   'Z':{r:2, h:'L'}, 'X':{r:2, h:'L'}, 'C':{r:2, h:'L'}, 'V':{r:2, h:'L'}, 'B':{r:2, h:'L'},
-  'N':{r:2, h:'R'}, 'M':{r:2, h:'R'}
+  'N':{r:2, h:'R'}, 'M':{r:2, h:'R'}, '-':{r:1, h:'R'}
 };
 
 function getTypingScore(word) {
@@ -309,7 +307,9 @@ function handleQ(val) {
   const box = document.getElementById('result-box');
   
   if (!q) { box.innerHTML = '<p style="color:var(--color-text-tertiary);font-size:15px;text-align:center;padding:2rem 0;">Start typing to search…</p>'; return; }
-  if (!/^[A-Z]{1,3}$/.test(q)) { box.innerHTML = '<p style="color:var(--color-text-danger);font-size:15px;text-align:center;padding:2rem 0;">Letters only, 1–3 characters.</p>'; return; }
+  
+  // Updated Regex to allow hyphens
+  if (!/^[A-Z-]{1,3}$/.test(q)) { box.innerHTML = '<p style="color:var(--color-text-danger);font-size:15px;text-align:center;padding:2rem 0;">Letters and hyphens only, 1–3 characters.</p>'; return; }
   
   const entry = idx[q];
   if (!entry) { box.innerHTML = '<p style="color:var(--color-text-tertiary);font-size:15px;text-align:center;padding:2rem 0;">No match found.</p>'; return; }
