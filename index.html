@@ -233,8 +233,8 @@ function buildIndex() {
           if (e.long.length < 20 || len > e.long[e.long.length - 1].length) {
             if (!e.long.includes(word)) { e.long.push(word); e.long.sort((a, b) => b.length - a.length); if (e.long.length > 20) e.long.pop(); }
           }
-          if (e.short.length < 5 || len < e.short[e.short.length - 1].length) {
-            if (!e.short.includes(word)) { e.short.push(word); e.short.sort((a, b) => a.length - b.length); if (e.short.length > 5) e.short.pop(); }
+          if (e.short.length < 10 || len < e.short[e.short.length - 1].length) {
+            if (!e.short.includes(word)) { e.short.push(word); e.short.sort((a, b) => a.length - b.length); if (e.short.length > 10) e.short.pop(); }
           }
         }
       }
@@ -348,7 +348,7 @@ function handleQ(val) {
         </div>
       </div>
       <div>
-        <div class="col-label">Top 5 Shortest</div>
+        <div class="col-label">Top 10 Shortest</div>
         ${renderList(entry.short, q, 1)}
       </div>
     </div>
