@@ -3,53 +3,280 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Word Finder</title>
+<title>Multi-dictionary Word Finder</title>
 <style>
-  :root { 
-    --color-background-primary: #ffffff; --color-background-secondary: #f4f4f5;
-    --color-text-primary: #09090b; --color-text-secondary: #52525b;
-    --color-text-tertiary: #a1a1aa; --color-border-secondary: #e4e4e7;
-    --color-success: #22c55e;
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f4f4f5;
+    --color-background-success: #dcfce7;
+    --color-background-warning: #fef08a;
+    --color-text-primary: #09090b;
+    --color-text-secondary: #52525b;
+    --color-text-tertiary: #a1a1aa;
+    --color-text-success: #166534;
+    --color-text-warning: #854d0e;
+    --color-text-danger: #ef4444;
+    --color-border-secondary: #e4e4e7;
+    --color-border-tertiary: #f4f4f5;
+    --border-radius-md: 8px;
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  body { font-family: system-ui; background: var(--color-background-primary); color: var(--color-text-primary); padding: 2rem; max-width: 900px; margin: 0 auto; }
-  .config-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
-  input[type="text"] { font-size: 20px; padding: 10px; width: 100%; border: 2px solid var(--color-border-secondary); border-radius: 6px; text-transform: uppercase; }
-  .results-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; }
-  .rrow { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid #eee; font-family: monospace; }
-  .badge-g { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+  [data-theme="dark"] {
+    --color-background-primary: #09090b;
+    --color-background-secondary: #18181b;
+    --color-background-success: #064e3b;
+    --color-background-warning: #713f12;
+    --color-text-primary: #fafafa;
+    --color-text-secondary: #a1a1aa;
+    --color-text-tertiary: #71717a;
+    --color-text-success: #4ade80;
+    --color-text-warning: #fde047;
+    --color-text-danger: #f87171;
+    --color-border-secondary: #27272a;
+    --color-border-tertiary: #18181b;
+  }
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background: var(--color-background-primary);
+    margin: 0; padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .header-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+  .icon-btn {
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-secondary);
+    color: var(--color-text-primary);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: var(--color-border-secondary); }
+  .settings-panel {
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 14px 16px;
+    margin-bottom: 1rem;
+  }
+  .settings-panel-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 0 0 10px;
+  }
+  .settings-row {
+    display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+  }
+  .settings-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 500; color: var(--color-text-secondary);
+  }
+  input[type="number"] {
+    width: 60px; padding: 4px 8px;
+    border: 1px solid var(--color-border-secondary);
+    border-radius: 4px;
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    box-sizing: border-box;
+  }
+  input[type="number"]:focus { outline: none; border-color: var(--color-text-tertiary); }
+  .reset-btn {
+    font-size: 12px; padding: 5px 12px;
+    border: 1px solid var(--color-border-secondary);
+    border-radius: 4px;
+    background: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    cursor: pointer; font-family: var(--font-sans);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .reset-btn:hover { background: var(--color-border-secondary); }
+  .file-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500;
+    padding: 4px 8px 4px 12px;
+    border-radius: 999px;
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-secondary);
+    margin: 3px;
+  }
+  .pill-x {
+    background: none; border: none; cursor: pointer;
+    padding: 2px; line-height: 1;
+    color: var(--color-text-tertiary);
+    display: flex; align-items: center;
+    border-radius: 50%;
+  }
+  .pill-x:hover { color: var(--color-text-danger); background: #fee2e2; }
+  [data-theme="dark"] .pill-x:hover { background: #7f1d1d; }
+  .col-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--color-border-secondary);
+    padding-bottom: 6px;
+  }
+  .results-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; align-items: start; margin-top: 1.5rem; }
+  .long-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+  .rrow { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--color-border-tertiary); }
+  .rrow:last-child { border-bottom: none; }
+  .rnum { font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); min-width: 18px; text-align: right; }
+  .rword { font-size: 15px; font-weight: 600; letter-spacing: 0.03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .rlen { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); background: var(--color-background-secondary); padding: 2px 6px; border-radius: 4px; }
+  .badge-g { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--color-background-success); color: var(--color-text-success); }
+  .easiest-card {
+    background: linear-gradient(to right, #f0fdf4, #ffffff);
+    border: 1px solid #bbf7d0; border-left: 4px solid #22c55e;
+    border-radius: var(--border-radius-md); padding: 14px 16px; margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  [data-theme="dark"] .easiest-card { background: linear-gradient(to right, #064e3b, #09090b); border-color: #047857; border-left-color: #22c55e; }
+  .easiest-label { font-size: 11px; font-weight: 700; color: var(--color-text-success); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .search-container { display: flex; gap: 8px; margin-top: 8px; }
+  input[type="text"] {
+    flex: 1; box-sizing: border-box;
+    border: 2px solid var(--color-border-secondary); border-radius: var(--border-radius-md);
+    background: var(--color-background-primary); color: var(--color-text-primary);
+    font-size: 24px; font-weight: 600; text-transform: uppercase; padding: 12px 16px; letter-spacing: 0.05em;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { outline: none; border-color: var(--color-text-tertiary); }
+  .loader {
+    display: inline-block; width: 20px; height: 20px;
+    border: 3px solid var(--color-border-secondary); border-radius: 50%;
+    border-top-color: var(--color-text-tertiary); animation: spin 1s ease-in-out infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media(max-width: 640px) {
+    .results-layout { grid-template-columns: 1fr; gap: 24px; }
+    .long-cols { grid-template-columns: 1fr; }
+    .settings-row { gap: 12px; }
+  }
 </style>
 </head>
 <body>
+<div style="padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto;">
 
-<div class="config-bar">
-  <input type="number" id="longCount" value="20" style="width:60px" placeholder="Long">
-  <input type="number" id="shortCount" value="10" style="width:60px" placeholder="Short">
-  <button onclick="handleQ(document.getElementById('qinput').value)">Apply Settings</button>
+  <div class="header-actions">
+    <button id="settings-toggle" class="icon-btn" aria-label="Display settings" title="Display settings">⚙️</button>
+    <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">🌙</button>
+  </div>
+
+  <!-- Settings panel, hidden by default -->
+  <div id="settings-panel" style="display:none;" class="settings-panel">
+    <p class="settings-panel-title">Display Settings</p>
+    <div class="settings-row">
+      <label class="settings-label">
+        Longest list:
+        <input type="number" id="long-limit-input" value="20" min="1" max="100">
+      </label>
+      <label class="settings-label">
+        Shortest list:
+        <input type="number" id="short-limit-input" value="10" min="1" max="100">
+      </label>
+      <button class="reset-btn" onclick="resetLimits()">Reset to defaults (20 / 10)</button>
+    </div>
+  </div>
+
+  <div id="loading-overlay" style="text-align: center; padding: 4rem 0;">
+    <div class="loader"></div>
+    <p style="color: var(--color-text-secondary); font-weight: 500; margin-top: 1rem;">Loading dictionary...</p>
+    <p id="loading-error" style="color: var(--color-text-danger); font-size: 13px; display: none;">Error loading file. Ensure you are running a local web server (CORS) or hosted on GitHub.</p>
+  </div>
+
+  <div id="main-app" style="display: none;">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+      <span id="total-badge" class="badge-g"></span>
+      <div id="file-pills" style="flex:1; min-width:0; display:flex; flex-wrap:wrap;"></div>
+    </div>
+    <label style="font-size:14px; font-weight:500; color:var(--color-text-secondary);">Find words containing (1–10 characters, letters / hyphens / apostrophes)</label>
+    <div class="search-container">
+      <input type="text" id="qinput" maxlength="10" placeholder="e.g. EN-" autocomplete="off" autocorrect="off" spellcheck="false" oninput="handleQ(this.value)">
+      <button class="icon-btn" title="Upload custom dictionary" onclick="document.getElementById('file-in-more').click()" style="border-radius: var(--border-radius-md); width: 56px; height: auto;">
+        📁
+      </button>
+      <input type="file" id="file-in-more" accept=".txt,.dic" multiple style="display:none">
+    </div>
+    <div id="result-box" style="margin-top:2rem; min-height:100px;">
+      <p style="color:var(--color-text-tertiary); font-size:15px; margin:0; text-align:center; padding: 2rem 0;">Start typing to search…</p>
+    </div>
+  </div>
 </div>
 
-<input type="text" id="qinput" maxlength="20" placeholder="e.g. EN-' or E-S" oninput="handleQ(this.value)">
-
-<div id="result-box"></div>
-
 <script>
+// ─── Dark Mode ────────────────────────────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+const currentTheme = localStorage.getItem('theme') || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+if (currentTheme === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+themeToggle.addEventListener('click', () => {
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'dark') { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('theme', 'light'); themeToggle.textContent = '🌙'; }
+  else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); themeToggle.textContent = '☀️'; }
+});
+
+// ─── Settings Panel ───────────────────────────────────────────────────────────
+document.getElementById('settings-toggle').addEventListener('click', () => {
+  const panel = document.getElementById('settings-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+
+// ─── List Size Settings ───────────────────────────────────────────────────────
+let longLimit = 20;
+let shortLimit = 10;
+// The index stores up to INDEX_BUFFER entries per key (covers any user-set limit up to 100)
+const INDEX_BUFFER = 100;
+
+document.getElementById('long-limit-input').addEventListener('input', function () {
+  const val = parseInt(this.value);
+  if (val >= 1 && val <= 100) { longLimit = val; triggerSearch(); }
+});
+document.getElementById('short-limit-input').addEventListener('input', function () {
+  const val = parseInt(this.value);
+  if (val >= 1 && val <= 100) { shortLimit = val; triggerSearch(); }
+});
+function resetLimits() {
+  longLimit = 20; shortLimit = 10;
+  document.getElementById('long-limit-input').value = 20;
+  document.getElementById('short-limit-input').value = 10;
+  triggerSearch();
+}
+function triggerSearch() {
+  handleQ(document.getElementById('qinput').value);
+}
+
+// ─── Core Data ────────────────────────────────────────────────────────────────
 let fileStore = [];
 let idx = {};
+const defaultFiles = ['words.txt'];
 
-// Added apostrophe to keyboard map for typing score
+// Apostrophe added; placed at right-hand home row (near Enter)
 const keyboardMap = {
-  'Q':{r:1, h:'L'}, 'W':{r:1, h:'L'}, 'E':{r:1, h:'L'}, 'R':{r:1, h:'L'}, 'T':{r:1, h:'L'},
-  'Y':{r:1, h:'R'}, 'U':{r:1, h:'R'}, 'I':{r:1, h:'R'}, 'O':{r:1, h:'R'}, 'P':{r:1, h:'R'},
-  'A':{r:0, h:'L'}, 'S':{r:0, h:'L'}, 'D':{r:0, h:'L'}, 'F':{r:0, h:'L'}, 'G':{r:0, h:'L'},
-  'H':{r:0, h:'R'}, 'J':{r:0, h:'R'}, 'K':{r:0, h:'R'}, 'L':{r:0, h:'R'},
-  'Z':{r:2, h:'L'}, 'X':{r:2, h:'L'}, 'C':{r:2, h:'L'}, 'V':{r:2, h:'L'}, 'B':{r:2, h:'L'},
-  'N':{r:2, h:'R'}, 'M':{r:2, h:'R'}, '-':{r:1, h:'R'}, "'":{r:1, h:'R'}
+  'Q':{r:1,h:'L'}, 'W':{r:1,h:'L'}, 'E':{r:1,h:'L'}, 'R':{r:1,h:'L'}, 'T':{r:1,h:'L'},
+  'Y':{r:1,h:'R'}, 'U':{r:1,h:'R'}, 'I':{r:1,h:'R'}, 'O':{r:1,h:'R'}, 'P':{r:1,h:'R'},
+  'A':{r:0,h:'L'}, 'S':{r:0,h:'L'}, 'D':{r:0,h:'L'}, 'F':{r:0,h:'L'}, 'G':{r:0,h:'L'},
+  'H':{r:0,h:'R'}, 'J':{r:0,h:'R'}, 'K':{r:0,h:'R'}, 'L':{r:0,h:'R'},
+  'Z':{r:2,h:'L'}, 'X':{r:2,h:'L'}, 'C':{r:2,h:'L'}, 'V':{r:2,h:'L'}, 'B':{r:2,h:'L'},
+  'N':{r:2,h:'R'}, 'M':{r:2,h:'R'}, '-':{r:1,h:'R'}, "'":{r:0,h:'R'}
 };
 
 function getTypingScore(word) {
   let score = 0; let prevHand = null;
-  for (let char of word) {
-    let key = keyboardMap[char.toUpperCase()];
-    if (!key) { score += 5; continue; }
+  for (let i = 0; i < word.length; i++) {
+    const key = keyboardMap[word[i]];
+    if (!key) { score += 3; continue; }
     score += (key.r === 0 ? 1 : (key.r === 1 ? 1.5 : 2.5));
     if (prevHand && key.h === prevHand) score += 1.2;
     prevHand = key.h;
@@ -57,40 +284,206 @@ function getTypingScore(word) {
   return score / word.length;
 }
 
+function parseWords(text) {
+  return [...new Set(text.split('\n').map(w => w.trim().toUpperCase()).filter(Boolean))];
+}
+
+// ─── Index (1–3 char substrings only; 4–10 uses real-time scan) ───────────────
+function buildIndex() {
+  idx = {};
+  const all = [...new Set(fileStore.flatMap(f => f.words))];
+  for (const word of all) {
+    const len = word.length;
+    for (let size = 1; size <= 3; size++) {
+      for (let i = 0; i <= len - size; i++) {
+        const sub = word.slice(i, i + size);
+        if (!idx[sub]) {
+          idx[sub] = { long: [word], short: [word] };
+          continue;
+        }
+        const e = idx[sub];
+        if (!e.long.includes(word)) {
+          if (e.long.length < INDEX_BUFFER || len > e.long[e.long.length - 1].length) {
+            e.long.push(word);
+            e.long.sort((a, b) => b.length - a.length);
+            if (e.long.length > INDEX_BUFFER) e.long.pop();
+          }
+        }
+        if (!e.short.includes(word)) {
+          if (e.short.length < INDEX_BUFFER || len < e.short[e.short.length - 1].length) {
+            e.short.push(word);
+            e.short.sort((a, b) => a.length - b.length);
+            if (e.short.length > INDEX_BUFFER) e.short.pop();
+          }
+        }
+      }
+    }
+  }
+}
+
+// ─── UI Refresh ───────────────────────────────────────────────────────────────
+function refreshUI() {
+  const total = new Set(fileStore.flatMap(f => f.words)).size;
+  document.getElementById('total-badge').textContent = total.toLocaleString() + ' WORDS';
+  document.getElementById('file-pills').innerHTML = fileStore.map((f, i) => `
+    <span class="file-pill">
+      <span title="${f.name}">${f.name}</span>
+      <button class="pill-x" onclick="removeFile(${i})" aria-label="Remove">✕</button>
+    </span>`).join('');
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  handleQ(document.getElementById('qinput').value);
+}
+
+function removeFile(i) { fileStore.splice(i, 1); buildIndex(); refreshUI(); }
+
+function loadFiles(files) {
+  let pending = files.length;
+  for (const file of files) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const words = parseWords(ev.target.result);
+      const ex = fileStore.findIndex(f => f.name === file.name);
+      if (ex >= 0) fileStore[ex] = { name: file.name, words };
+      else fileStore.push({ name: file.name, words });
+      if (--pending === 0) { buildIndex(); refreshUI(); }
+    };
+    reader.readAsText(file);
+  }
+}
+
+async function loadDefaultDictionaries() {
+  try {
+    for (const filename of defaultFiles) {
+      const response = await fetch(filename);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const text = await response.text();
+      fileStore.push({ name: filename, words: parseWords(text) });
+    }
+    buildIndex();
+    refreshUI();
+  } catch (error) {
+    console.error("Failed to fetch default dictionaries:", error);
+    document.querySelector('.loader').style.display = 'none';
+    document.getElementById('loading-error').style.display = 'block';
+  }
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+function hl(word, q) {
+  // Uses string split/join — handles apostrophes and hyphens with no regex edge-cases
+  return word.split(q).join(
+    `<mark style="background:var(--color-background-warning);color:var(--color-text-warning);border-radius:3px;padding:0 2px;font-weight:700;">${q}</mark>`
+  );
+}
+
+function renderList(words, q, startIdx = 1) {
+  if (!words || !words.length) return '';
+  return words.map((w, i) => `
+    <div class="rrow">
+      <span class="rnum">${startIdx + i}</span>
+      <span class="rword">${hl(w, q)}</span>
+      <span class="rlen">${w.length}</span>
+    </div>`).join('');
+}
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+let searchTimeout = null;
+
 function handleQ(val) {
   const q = val.trim().toUpperCase();
   const box = document.getElementById('result-box');
-  const longLimit = parseInt(document.getElementById('longCount').value) || 20;
-  const shortLimit = parseInt(document.getElementById('shortCount').value) || 10;
 
-  if (!q) return;
-  if (!/^[A-Z-']{1,20}$/.test(q)) { box.innerHTML = "Invalid characters."; return; }
-
-  let matches = [];
-  // Branching Logic: Use Index for fast small lookups, Filter for long lookups
-  if (q.length <= 5) {
-    matches = idx[q] ? [...new Set([...idx[q].long, ...idx[q].short])] : [];
-  } else {
-    matches = [...new Set(fileStore.flatMap(f => f.words))].filter(w => w.includes(q));
+  if (!q) {
+    box.innerHTML = '<p style="color:var(--color-text-tertiary);font-size:15px;margin:0;text-align:center;padding:2rem 0;">Start typing to search…</p>';
+    return;
+  }
+  // Allow letters, hyphens, apostrophes; hyphen placed first in class to avoid range interpretation
+  if (!/^[-A-Z']{1,10}$/.test(q)) {
+    box.innerHTML = '<p style="color:var(--color-text-danger);font-size:15px;margin:0;text-align:center;padding:2rem 0;">Letters, hyphens, and apostrophes only, 1–10 characters.</p>';
+    return;
   }
 
-  const sortedLong = [...matches].sort((a,b) => b.length - a.length).slice(0, longLimit);
-  const sortedShort = [...matches].sort((a,b) => a.length - b.length).slice(0, shortLimit);
-  
-  // Find Easiest (Must be in the result set)
-  let bestWord = matches.reduce((best, curr) => getTypingScore(curr) < getTypingScore(best) ? curr : best, matches[0]);
+  clearTimeout(searchTimeout);
+  if (q.length <= 3) {
+    // Old engine: instant index lookup
+    doSearch(q);
+  } else {
+    // New engine: real-time scan, debounced 150 ms
+    searchTimeout = setTimeout(() => doSearch(q), 150);
+  }
+}
+
+function doSearch(q) {
+  const box = document.getElementById('result-box');
+  let longestWords, shortestWords;
+
+  if (q.length <= 3) {
+    // ── Index path (1–3 chars) ─────────────────────────────────────────────
+    const entry = idx[q];
+    if (!entry) {
+      box.innerHTML = '<p style="color:var(--color-text-tertiary);font-size:15px;margin:0;text-align:center;padding:2rem 0;">No match found.</p>';
+      return;
+    }
+    longestWords  = entry.long.slice(0, longLimit);
+    shortestWords = entry.short.slice(0, shortLimit);
+  } else {
+    // ── Real-time scan path (4–10 chars) ──────────────────────────────────
+    const all = [...new Set(fileStore.flatMap(f => f.words))];
+    const matches = all.filter(w => w.includes(q));
+    if (!matches.length) {
+      box.innerHTML = '<p style="color:var(--color-text-tertiary);font-size:15px;margin:0;text-align:center;padding:2rem 0;">No match found.</p>';
+      return;
+    }
+    longestWords  = [...matches].sort((a, b) => b.length - a.length).slice(0, longLimit);
+    shortestWords = [...matches].sort((a, b) => a.length - b.length).slice(0, shortLimit);
+  }
+
+  // Find easiest-to-type word from the longest list
+  let easiestWord = ''; let bestScore = Infinity;
+  longestWords.forEach(w => {
+    const score = getTypingScore(w);
+    if (score < bestScore) { bestScore = score; easiestWord = w; }
+  });
+  // Easiest word is NOT removed from the numbered list — it appears in both places
+
+  const midPoint = Math.ceil(longestWords.length / 2);
+  const col1 = longestWords.slice(0, midPoint);
+  const col2 = longestWords.slice(midPoint);
 
   box.innerHTML = `
-    <h3>Easiest: ${bestWord}</h3>
     <div class="results-layout">
-      <div><h4>Longest</h4>${sortedLong.map(w => `<div class="rrow">${w} <span class="badge-g">${w.length}</span></div>`).join('')}</div>
-      <div><h4>Shortest</h4>${sortedShort.map(w => `<div class="rrow">${w} <span class="badge-g">${w.length}</span></div>`).join('')}</div>
+      <div>
+        <div class="col-label">Top ${longestWords.length} Longest</div>
+        ${easiestWord ? `
+        <div class="easiest-card">
+          <div class="easiest-label">⚡ Easiest to type fast</div>
+          <div class="rrow" style="border:none; padding:0;">
+            <span class="rnum" style="color:#22c55e;">★</span>
+            <span class="rword">${hl(easiestWord, q)}</span>
+            <span class="rlen">${easiestWord.length}</span>
+          </div>
+        </div>` : ''}
+        <div class="long-cols">
+          <div>${renderList(col1, q, 1)}</div>
+          <div>${renderList(col2, q, col1.length + 1)}</div>
+        </div>
+      </div>
+      <div>
+        <div class="col-label">Top ${shortestWords.length} Shortest</div>
+        ${renderList(shortestWords, q, 1)}
+      </div>
     </div>
   `;
 }
 
-// ... (Keep existing loadFiles and buildIndex logic, ensuring parseWords handles apostrophes)
-function parseWords(text) { return [...new Set(text.split('\n').map(w => w.trim().toUpperCase()).filter(Boolean))]; }
+// ─── File Input ───────────────────────────────────────────────────────────────
+document.getElementById('file-in-more').addEventListener('change', function (e) {
+  if (e.target.files.length) loadFiles([...e.target.files]);
+  this.value = '';
+});
+
+window.addEventListener('DOMContentLoaded', loadDefaultDictionaries);
 </script>
 </body>
 </html>
