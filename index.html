@@ -78,7 +78,7 @@
   </div>
 </div>
 
-<input type="text" id="qinput" maxlength="20" placeholder="Type letters, '-' or apostrophe..." oninput="handleQ(this.value)" autofocus>
+<input type="text" id="qinput" maxlength="20" placeholder="Type letters, '-' or apostrophe..." oninput="debounceSearch(this.value)" autofocus>
 
 <div id="result-box" style="margin-top: 2rem; text-align: center; color: var(--color-text-tertiary);">
   Load a dictionary or start typing to search...
@@ -86,9 +86,8 @@
 
 <script>
 let fileStore = [];
-let idx = {};
 
-// 1. Theme handler
+// Theme Handler
 if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
 function toggleTheme() {
   if (document.documentElement.hasAttribute('data-theme')) {
@@ -100,7 +99,7 @@ function toggleTheme() {
   }
 }
 
-// 2. Typing Ease heuristic
+// Scoring Data
 const keyboardMap = {
   'Q':{r:1, h:'L'}, 'W':{r:1, h:'L'}, 'E':{r:1, h:'L'}, 'R':{r:1, h:'L'}, 'T':{r:1, h:'L'},
   'Y':{r:1, h:'R'}, 'U':{r:1, h:'R'}, 'I':{r:1, h:'R'}, 'O':{r:1, h:'R'}, 'P':{r:1, h:'R'},
@@ -109,6 +108,8 @@ const keyboardMap = {
   'Z':{r:2, h:'L'}, 'X':{r:2, h:'L'}, 'C':{r:2, h:'L'}, 'V':{r:2, h:'L'}, 'B':{r:2, h:'L'},
   'N':{r:2, h:'R'}, 'M':{r:2, h:'R'}, '-':{r:1, h:'R'}, "'":{r:1, h:'R'}
 };
+
+const weirdLetterPts = { 'Z':10, 'Q':10, 'X':9, 'J':8, 'K':6, 'V':5, 'W':4, 'Y':4, 'B':3, 'F':3, 'P':2, 'H':2 };
 
 function getTypingScore(word) {
   let score = 0; let prevHand = null;
@@ -122,32 +123,36 @@ function getTypingScore(word) {
   return score / word.length;
 }
 
-// 3. Goldilocks Weirdness heuristic
-const weirdLetterPts = {
-  'Z':10, 'Q':10, 'X':9, 'J':8, 'K':6, 'V':5, 'W':4, 'Y':4, 'B':3, 'F':3, 'P':2, 'H':2
-};
-
 function getWeirdnessScore(word) {
   let pts = 0;
-  for (let char of word) {
-    pts += (weirdLetterPts[char.toUpperCase()] || 0);
-  }
-  
-  // The Goldilocks curve: heavily favors 4, 5, and 6 letter words
+  for (let char of word) { pts += (weirdLetterPts[char.toUpperCase()] || 0); }
   const len = word.length;
   let multiplier = 0.5;
   if (len === 3) multiplier = 0.8;
   else if (len === 4) multiplier = 1.1;
-  else if (len === 5) multiplier = 1.2; // Peak weirdness sweet-spot
+  else if (len === 5) multiplier = 1.2; 
   else if (len === 6) multiplier = 1.1;
   else if (len === 7) multiplier = 0.9;
   else if (len === 8) multiplier = 0.7;
-
   return pts * multiplier;
 }
 
+// OPTIMIZATION: Pre-calculate all word metrics on load
 function parseWords(text) { 
-  return [...new Set(text.split('\n').map(w => w.trim().toUpperCase()).filter(Boolean))]; 
+  const uniqueStrings = [...new Set(text.split('\n').map(w => w.trim().toUpperCase()).filter(Boolean))]; 
+  return uniqueStrings.map(w => ({
+    w: w,
+    len: w.length,
+    wScore: getWeirdnessScore(w),
+    tScore: getTypingScore(w)
+  }));
+}
+
+// OPTIMIZATION: Debounce search input
+let searchTimeout;
+function debounceSearch(val) {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => handleQ(val), 200);
 }
 
 function triggerSearch() {
@@ -159,12 +164,12 @@ function hl(word, q) {
   return word.split(q).join(`<mark>${q}</mark>`);
 }
 
-function renderColumn(words, q) {
-  if (!words.length) return `<div class="rrow"><span class="word-text" style="color:var(--color-text-tertiary)">None</span></div>`;
-  return words.map(w => `
+function renderColumn(items, q) {
+  if (!items.length) return `<div class="rrow"><span class="word-text" style="color:var(--color-text-tertiary)">None</span></div>`;
+  return items.map(item => `
     <div class="rrow">
-      <span class="word-text">${hl(w, q)}</span>
-      <span class="badge badge-len">${w.length}</span>
+      <span class="word-text">${hl(item.w, q)}</span>
+      <span class="badge badge-len">${item.len}</span>
     </div>
   `).join('');
 }
@@ -179,27 +184,30 @@ function handleQ(val) {
   if (!q) { box.innerHTML = "Start typing to search..."; return; }
   if (!/^[A-Z-']{1,20}$/.test(q)) { box.innerHTML = `<span style="color:var(--color-warning)">⚠️ Invalid symbol detected</span>`; return; }
 
-  // Fallback flat search for live dictionary
   const allWords = fileStore.length > 0 ? fileStore[0].words : [];
-  const matches = allWords.filter(w => w.includes(q));
+  
+  // Fast filter
+  const matches = allWords.filter(item => item.w.includes(q));
 
   if (!matches.length) { box.innerHTML = "No matching words found."; return; }
 
-  // Sub-sorts
-  const sortedLong = [...matches].sort((a,b) => b.length - a.length).slice(0, limitLong);
-  const sortedShort = [...matches].sort((a,b) => a.length - b.length).slice(0, limitShort);
-  const sortedWeird = [...matches].sort((a,b) => getWeirdnessScore(b) - getWeirdnessScore(a)).slice(0, limitWeird);
+  // Sorting is now just comparing pre-calculated numbers (Lightning Fast)
+  const sortedLong = [...matches].sort((a,b) => b.len - a.len).slice(0, limitLong);
+  const sortedShort = [...matches].sort((a,b) => a.len - b.len).slice(0, limitShort);
+  const sortedWeird = [...matches].sort((a,b) => b.wScore - a.wScore).slice(0, limitWeird);
 
-  // Absolute easiest to type out of the matched pool
-  let easiestWord = matches.reduce((best, curr) => getTypingScore(curr) < getTypingScore(best) ? curr : best, matches[0]);
+  let easiestItem = matches[0];
+  for(let i = 1; i < matches.length; i++) {
+      if(matches[i].tScore < easiestItem.tScore) easiestItem = matches[i];
+  }
 
   box.innerHTML = `
     <div class="easiest-banner">
       <div style="text-align: left;">
         <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--color-success)">⚡ Easiest to type fast</div>
-        <div style="font-size:20px; font-weight:800; letter-spacing:0.05em; margin-top:2px;">${hl(easiestWord, q)}</div>
+        <div style="font-size:20px; font-weight:800; letter-spacing:0.05em; margin-top:2px;">${hl(easiestItem.w, q)}</div>
       </div>
-      <span class="badge" style="background:var(--color-success); color:white; font-size:13px; padding:4px 8px;">Len ${easiestWord.length}</span>
+      <span class="badge" style="background:var(--color-success); color:white; font-size:13px; padding:4px 8px;">Len ${easiestItem.len}</span>
     </div>
 
     <div class="results-layout">
@@ -223,11 +231,13 @@ function handleQ(val) {
 
 // Auto-load words.txt on boot
 window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('result-box').innerHTML = `⏳ Building performance index...`;
   fetch('words.txt')
     .then(res => res.text())
     .then(text => {
       fileStore = [{ name: 'words.txt', words: parseWords(text) }];
-      triggerSearch();
+      document.getElementById('result-box').innerHTML = `Start typing to search...`;
+      if(document.getElementById('qinput').value) triggerSearch();
     })
     .catch(() => {
       document.getElementById('result-box').innerHTML = `⚠️ Could not auto-load <b>words.txt</b>. Check local server.`;
