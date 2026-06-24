@@ -125,6 +125,10 @@ function getTypingScore(word) {
 
 function getWeirdnessScore(word) {
   let pts = 0;
+  
+  // Hyphen gets extreme top priority
+  if (word.includes('-')) pts += 1000;
+  
   for (let char of word) { pts += (weirdLetterPts[char.toUpperCase()] || 0); }
   const len = word.length;
   let multiplier = 0.5;
